@@ -1,6 +1,6 @@
 import streamlit as st
+from utils.groq_ai import analyze_resume
 from utils.resume_parser import extract_text
-from utils.claude_ai import analyze_resume
 
 st.set_page_config(
     page_title="AI Interview Preparation Assistant",
@@ -68,6 +68,13 @@ st.markdown("""
     padding: 12px;
     border: 1px solid rgba(99,102,241,0.3);
 }
+.powered-badge {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 13px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
@@ -78,10 +85,18 @@ st.markdown(
     '<p class="main-title">🎤 AI Interview Preparation Assistant</p>',
     unsafe_allow_html=True
 )
+st.markdown(
+    '<p class="powered-badge">⚡ Powered by Groq + Llama 3 — Ultra Fast AI</p>',
+    unsafe_allow_html=True
+)
 
 with st.sidebar:
     st.title("🎤 AI Interview")
     st.write("Practice • Analyze • Improve")
+    st.markdown("---")
+    st.markdown("⚡ **Powered by Groq**")
+    st.markdown("🦙 Model: Llama 3 8B")
+    st.markdown("🚀 Response time: ~1 sec")
 
 st.markdown("Practice interviews, improve your skills, and track your progress.")
 st.write("")
@@ -109,18 +124,13 @@ for i, (icon, label) in enumerate(features):
 
 st.divider()
 
-# Resume Upload
 st.subheader("📄 Upload Resume")
 
-resume = st.file_uploader(
-    "Upload your Resume (PDF/DOCX)",
-    type=["pdf", "docx"]
-)
+resume = st.file_uploader("Upload your Resume (PDF/DOCX)", type=["pdf", "docx"])
 
 if resume is not None:
     st.success("Resume Uploaded Successfully!")
-
-    with st.spinner("Analyzing your resume with Claude AI... (this takes ~5 seconds)"):
+    with st.spinner("⚡ Analyzing with Groq AI... (usually under 3 seconds)"):
         resume_text = extract_text(resume)
         if resume_text:
             analysis = analyze_resume(resume_text)
