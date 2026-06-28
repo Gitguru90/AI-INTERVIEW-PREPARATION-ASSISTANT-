@@ -1,5 +1,6 @@
+cat > /home/claude/groq_app/pages/2_Interview.py << 'EOF'
 import streamlit as st
-from utils.groq_ai import ask_groq
+from utils.groq_ai import ask_interview_question_prompt
 
 st.set_page_config(page_title="Interview Round", page_icon="🎤")
 
@@ -8,17 +9,12 @@ st.markdown("""
 .stApp { background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1e3a8a); background-size: 400% 400%; animation: gradientShift 15s ease infinite; }
 @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 .stButton > button { background: linear-gradient(90deg, #6366F1, #EC4899); color: white; border: none; border-radius: 12px; padding: 10px 24px; font-weight: 600; }
-.stButton > button:hover { transform: scale(1.05); box-shadow: 0 0 18px rgba(236,72,153,0.6); }
 #MainMenu {visibility:hidden;} footer {visibility:hidden;} header {visibility:hidden;}
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🎤 AI Interview")
-st.markdown("⚡ Powered by **Groq + Llama 3**")
-
-# -------------------------
-# Safety Check
-# -------------------------
+st.markdown("⚡ Powered by **Groq + Mixtral**")
 
 if "role" not in st.session_state:
     st.warning("Please start interview from Choose Interview page.")
@@ -34,11 +30,7 @@ if "duration" not in st.session_state:
 
 duration = st.session_state["duration"]
 
-# -------------------------
-# Map duration -> question count
-# -------------------------
-
-DURATION_QUESTION_MAP = {15: 10, 30: 25, 60: 45}
+DURATION_QUESTION_MAP = {15: 5, 30: 10, 60: 15}  # reduced counts for token limits
 
 def _parse_duration_minutes(value):
     if isinstance(value, (int, float)):
@@ -47,11 +39,7 @@ def _parse_duration_minutes(value):
     return int(digits) if digits else 15
 
 duration_minutes = _parse_duration_minutes(duration)
-num_questions = DURATION_QUESTION_MAP.get(duration_minutes, 10)
-
-# -------------------------
-# Generate Questions Once
-# -------------------------
+num_questions = DURATION_QUESTION_MAP.get(duration_minutes, 5)
 
 current_signature = (role, mode, difficulty, duration_minutes)
 
@@ -60,76 +48,43 @@ if (
     or st.session_state.get("questions_generated_for") != current_signature
 ):
     if mode == "MCQ":
-        mode_instructions = f"""
-Generate exactly {num_questions} MCQs.
-
-Format (repeat for each question):
-
+        mode_instructions = f"""Generate exactly {num_questions} MCQs.
+Format:
 QUESTION: ...
 A) ...
 B) ...
 C) ...
 D) ...
-ANSWER: A
-"""
+ANSWER: A"""
+
     elif mode == "Descriptive":
-        mode_instructions = f"""
-Generate exactly {num_questions} descriptive questions.
+        mode_instructions = f"""Generate exactly {num_questions} descriptive questions.
+Format:
+QUESTION: ..."""
 
-Format (repeat for each question):
-
-QUESTION: ...
-"""
     elif mode == "Coding":
-        mode_instructions = f"""
-Generate exactly {num_questions} coding questions.
+        mode_instructions = f"""Generate exactly {num_questions} coding questions.
+Format:
+CODING: ..."""
 
-Format (repeat for each question):
-
-CODING: ...
-"""
     elif mode == "Mixed":
-        num_mcq = max(1, round(num_questions * 0.4))
-        num_desc = max(1, round(num_questions * 0.4))
+        num_mcq = max(1, num_questions // 3)
+        num_desc = max(1, num_questions // 3)
         num_coding = max(1, num_questions - num_mcq - num_desc)
-        mode_instructions = f"""
-Generate a mixed set of exactly {num_questions} questions total:
-- {num_mcq} MCQ questions
-- {num_desc} Descriptive questions
-- {num_coding} Coding questions
-
-Use this format for MCQs:
+        mode_instructions = f"""Generate {num_mcq} MCQs, {num_desc} descriptive, {num_coding} coding questions.
+MCQ format:
 QUESTION: ...
-A) ...
-B) ...
-C) ...
-D) ...
+A) ... B) ... C) ... D) ...
 ANSWER: A
-
-Use this format for Descriptive:
-QUESTION: ...
-
-Use this format for Coding:
-CODING: ...
-"""
+Descriptive: QUESTION: ...
+Coding: CODING: ..."""
     else:
-        mode_instructions = f"Generate exactly {num_questions} questions relevant to the role."
+        mode_instructions = f"Generate {num_questions} questions."
 
-    prompt = f"""You are an expert technical interviewer.
-Role: {role}
-Difficulty: {difficulty}
-Mode: {mode}
-Total Questions Required: {num_questions}
-
-IMPORTANT:
-{mode_instructions}
-
-Return ONLY the questions in the exact format described above.
-Do not add any extra commentary, headings, or explanations.
-"""
-
-    with st.spinner("⚡ Generating questions with Groq AI..."):
-        st.session_state.generated_questions = ask_groq(prompt, max_tokens=2000)
+    with st.spinner("⚡ Generating questions with Groq..."):
+        st.session_state.generated_questions = ask_interview_question_prompt(
+            role, difficulty, mode, num_questions, mode_instructions
+        )
         st.session_state.questions_generated_for = current_signature
         st.session_state.answers = {}
         st.session_state.correct_answers = {}
@@ -141,14 +96,9 @@ if "answers" not in st.session_state:
 if "correct_answers" not in st.session_state:
     st.session_state.correct_answers = {}
 
-st.write(f"### Role: {role}")
-st.write(f"### Mode: {mode} | Difficulty: {difficulty}")
-st.write(f"### Duration: {duration_minutes} min  |  Questions: {num_questions}")
+st.write(f"### {role} | {mode} | {difficulty}")
+st.write(f"### Duration: {duration_minutes} min | Questions: {num_questions}")
 st.divider()
-
-# ==================================================
-# MCQ MODE
-# ==================================================
 
 if mode == "MCQ":
     blocks = questions_text.split("QUESTION:")
@@ -166,15 +116,14 @@ if mode == "MCQ":
             elif line.startswith("ANSWER:"):
                 answer_key = line.replace("ANSWER:", "").strip()
         st.subheader(f"Question {q_no}")
-        selected = st.radio(question, options, key=f"mcq_{q_no}")
-        st.session_state.answers[q_no] = selected
-        st.session_state.correct_answers[q_no] = answer_key
+        if options:
+            selected = st.radio(question, options, key=f"mcq_{q_no}")
+            st.session_state.answers[q_no] = selected
+            st.session_state.correct_answers[q_no] = answer_key
+        else:
+            st.write(question)
         st.divider()
         q_no += 1
-
-# ==================================================
-# DESCRIPTIVE MODE
-# ==================================================
 
 elif mode == "Descriptive":
     questions = [
@@ -189,10 +138,6 @@ elif mode == "Descriptive":
         st.session_state.answers[i] = answer
         st.divider()
 
-# ==================================================
-# CODING MODE
-# ==================================================
-
 elif mode == "Coding":
     questions = [
         line.replace("CODING:", "").strip()
@@ -200,19 +145,15 @@ elif mode == "Coding":
         if line.strip().startswith("CODING:")
     ]
     if not questions:
-        st.error("No coding questions generated.")
+        st.error("No coding questions generated. Raw output:")
         st.code(questions_text)
     else:
         for i, q in enumerate(questions, start=1):
             st.subheader(f"Coding Problem {i}")
             st.write(q)
-            code = st.text_area("Write Your Code", height=250, key=f"code_{i}")
+            code = st.text_area("Write Your Code", height=200, key=f"code_{i}")
             st.session_state.answers[i] = code
             st.divider()
-
-# ==================================================
-# MIXED MODE
-# ==================================================
 
 elif mode == "Mixed":
     lines = [line.strip() for line in questions_text.split("\n") if line.strip()]
@@ -250,17 +191,13 @@ elif mode == "Mixed":
         elif line.startswith("CODING:"):
             problem = line.replace("CODING:", "").strip()
             st.subheader(f"Coding Challenge {q_no}")
-            code = st.text_area(problem, height=250, key=f"mixed_code_{q_no}")
+            code = st.text_area(problem, height=200, key=f"mixed_code_{q_no}")
             st.session_state.answers[q_no] = code
             st.divider()
             q_no += 1
             i += 1
         else:
             i += 1
-
-# ==================================================
-# SUBMIT
-# ==================================================
 
 if st.button("✅ Submit Interview"):
     if mode in ["MCQ", "Mixed"]:
@@ -276,3 +213,4 @@ if st.button("✅ Submit Interview"):
     st.session_state.interview_questions = questions_text
     st.session_state.interview_answers = dict(st.session_state.answers)
     st.switch_page("pages/3_Evaluation.py")
+EOF
