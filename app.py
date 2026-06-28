@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.resume_parser import extract_text
-from utils.gemini import analyze_resume
+from utils.claude_ai import analyze_resume
 
 st.set_page_config(
     page_title="AI Interview Preparation Assistant",
@@ -10,25 +10,20 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
-/* Animated gradient background */
 .stApp {
     background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1e3a8a);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
 }
-
 @keyframes gradientShift {
     0% {background-position: 0% 50%;}
     50% {background-position: 100% 50%;}
     100% {background-position: 0% 50%;}
 }
-
-/* Animated glowing title */
-.main-title{
-    font-size:48px;
-    font-weight:800;
-    text-align:center;
+.main-title {
+    font-size: 48px;
+    font-weight: 800;
+    text-align: center;
     background: linear-gradient(90deg, #6366F1, #EC4899, #F59E0B, #6366F1);
     background-size: 300% auto;
     -webkit-background-clip: text;
@@ -36,32 +31,24 @@ st.markdown("""
     color: transparent;
     animation: shine 4s linear infinite, popIn 0.8s ease-out;
 }
-
-@keyframes shine {
-    to { background-position: 300% center; }
-}
-
+@keyframes shine { to { background-position: 300% center; } }
 @keyframes popIn {
     0% { opacity: 0; transform: scale(0.8); }
     100% { opacity: 1; transform: scale(1); }
 }
-
-/* Glassmorphism cards */
-.card{
-    background: rgba(255, 255, 255, 0.06);
+.card {
+    background: rgba(255,255,255,0.06);
     backdrop-filter: blur(10px);
-    padding:20px;
-    border-radius:18px;
-    text-align:center;
+    padding: 20px;
+    border-radius: 18px;
+    text-align: center;
     border: 1px solid rgba(255,255,255,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.card:hover{
+.card:hover {
     transform: translateY(-6px) scale(1.02);
     box-shadow: 0 10px 30px rgba(99,102,241,0.4);
 }
-
-/* Buttons */
 .stButton > button {
     background: linear-gradient(90deg, #6366F1, #EC4899);
     color: white;
@@ -75,28 +62,20 @@ st.markdown("""
     transform: scale(1.05);
     box-shadow: 0 0 18px rgba(236,72,153,0.6);
 }
-
-/* Metrics */
 [data-testid="stMetric"] {
     background: rgba(255,255,255,0.05);
     border-radius: 14px;
     padding: 12px;
     border: 1px solid rgba(99,102,241,0.3);
 }
-
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-header {visibility:hidden;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-
 st.markdown(
-    """
-    <p class="main-title">
-    🎤 AI Interview Preparation Assistant
-    </p>
-    """,
+    '<p class="main-title">🎤 AI Interview Preparation Assistant</p>',
     unsafe_allow_html=True
 )
 
@@ -122,7 +101,7 @@ for i, (icon, label) in enumerate(features):
         st.markdown(
             f"""<div class="card">
                 <div style="font-size:32px;">{icon}</div>
-                <div style="font-weight:600;margin-top:8px;">{label}</div>
+                <div style="font-weight:600;margin-top:8px;color:white;">{label}</div>
             </div>""",
             unsafe_allow_html=True
         )
@@ -139,19 +118,16 @@ resume = st.file_uploader(
 )
 
 if resume is not None:
-
     st.success("Resume Uploaded Successfully!")
 
-    # Extract text from PDF/DOCX
-    resume_text = extract_text(resume)
-
-    # Send to Gemini — analyze_resume itself needs to be updated
-    # to return short bullet points (see utils/gemini.py fix needed)
-    analysis = analyze_resume(resume_text)
-
-    st.subheader("📊 AI Resume Analysis")
-    st.markdown(analysis)
+    with st.spinner("Analyzing your resume with Claude AI... (this takes ~5 seconds)"):
+        resume_text = extract_text(resume)
+        if resume_text:
+            analysis = analyze_resume(resume_text)
+            st.subheader("📊 AI Resume Analysis")
+            st.markdown(analysis)
+        else:
+            st.error("Could not extract text from the resume. Please try a different file.")
 
 st.divider()
-
 st.info("Use the sidebar to start your interview.")
