@@ -10,9 +10,11 @@ def get_client():
     return Groq(api_key=api_key)
 
 
-def ask_groq(prompt: str, max_tokens: int = 1000) -> str:
+def ask_groq(prompt: str, max_tokens: int = 800) -> str:
     """General-purpose Groq call — used by all pages."""
     client = get_client()
+    # Trim prompt to stay within Groq's 8192 token context limit
+    prompt = prompt[:4000]
     response = client.chat.completions.create(
         model="llama3-8b-8192",
         messages=[{"role": "user", "content": prompt}],
@@ -23,35 +25,36 @@ def ask_groq(prompt: str, max_tokens: int = 1000) -> str:
 
 
 def analyze_resume(resume_text: str) -> str:
-    prompt = f"""Analyze this resume and return a concise report in markdown format with these sections:
+    # Trim resume to 1500 chars to avoid token limit
+    resume_short = resume_text[:1500]
+    prompt = f"""Analyze this resume briefly. Return markdown with these sections:
 
 ## ✅ Strengths
-- List 3–5 key strengths as bullet points
+- 3 bullet points max
 
 ## ⚠️ Areas to Improve
-- List 2–4 weaknesses or gaps as bullet points
+- 2 bullet points max
 
 ## 💡 Suggestions
-- List 3–5 specific actionable improvements as bullet points
+- 3 bullet points max
 
 ## 🎯 Best Fit Roles
-- List 3–4 job roles this candidate is well-suited for
+- 3 roles max
 
 ## 📊 Overall Score
-Give a score out of 100 with a one-line justification.
+Score out of 100 with one line reason.
 
-Keep each bullet point short (1 sentence max). Be direct and constructive.
+Keep every bullet under 12 words. Be direct.
 
 Resume:
-{resume_text[:3000]}
+{resume_short}
 """
-    return ask_groq(prompt, max_tokens=800)
+    return ask_groq(prompt, max_tokens=500)
 
 
 def generate_questions(role: str, level: str, q_type: str, count: int = 8) -> list:
-    prompt = f"""Generate exactly {count} {q_type} interview questions for a {level} {role} position.
-Return as a numbered list. Each line: just the question text, nothing else.
-No explanations, no categories, just the questions."""
+    prompt = f"""Generate {count} {q_type} interview questions for a {level} {role}.
+Numbered list only. No explanations."""
     response = ask_groq(prompt, max_tokens=600)
     lines = response.strip().split("\n")
     questions = []
@@ -65,34 +68,19 @@ No explanations, no categories, just the questions."""
 
 
 def evaluate_answer(question: str, answer: str, role: str = "") -> str:
-    prompt = f"""Evaluate this interview answer for a {role or 'professional'} role.
+    prompt = f"""Evaluate this interview answer for {role or 'a professional'} role.
 
-Question: {question}
-Answer: {answer}
+Question: {question[:300]}
+Answer: {answer[:500]}
 
-Return feedback in this exact markdown format:
-
+Reply in this format:
 **Score: X/100**
-
-**What worked well:**
-(1-2 sentences)
-
-**What to improve:**
-(1-2 sentences)
-
-**Pro tip:**
-(1 sentence specific advice)
-
-Be concise and constructive."""
-    return ask_groq(prompt, max_tokens=400)
+**What worked:** (1 sentence)
+**Improve:** (1 sentence)
+**Tip:** (1 sentence)"""
+    return ask_groq(prompt, max_tokens=300)
 
 
 def mock_interview_question(role: str, previous_qa: list = None) -> str:
-    context = ""
-    if previous_qa:
-        context = "\n".join([f"Q: {qa['q']}\nA: {qa['a']}" for qa in previous_qa[-2:]])
-        context = f"\nPrevious exchange:\n{context}\nNow ask a follow-up or next question."
-    prompt = f"""You are interviewing a candidate for a {role} position.
-Ask ONE challenging but fair interview question.{context}
-Return only the question text, nothing else."""
-    return ask_groq(prompt, max_tokens=150).strip()
+    prompt = f"Ask ONE interview question for a {role} position. Return only the question."
+    return ask_groq(prompt, max_tokens=100).strip()
