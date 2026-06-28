@@ -1,0 +1,111 @@
+//STRUCTURE............
+Page 1
+Home + Resume Upload
+
+↓
+
+Page 2
+Choose Interview
+(Role, Type, Difficulty, Duration)
+
+↓
+
+Page 3
+Interview Round
+(MCQ / Descriptive / Coding / Mixed)
+
+↓
+
+Page 4
+Evaluation
+(Score + Feedback + Mentor's Note)
+
+↓
+
+Page 5
+Dashboard
+(Progress Graphs + Best Topics + Weak Topics)
+
+↓
+
+Page 6 (Future)
+Learning Roadmap
+
+//EXPLAINATION  
+PAGE 1
+
+                              AI Interview Preparation Assistant |         |          |          |
+
+
+                                    [Start With Resume]
+
+
+Resume Score :
+
+Extract Skills:
+
+PAGE 2 : CHOOSE ROUND 
+
+Role:                                                         
+○ SDE Intern
+○ AI Engineer
+○ Data Analyst
+
+Mode:
+○ MCQ
+○ Descriptive
+○ Coding
+○ Mixed
+
+Difficulty:
+○ Easy
+○ Medium
+○ Hard
+
+Duration:
+○ 15 min
+○ 30 min
+○ 60 min
+
+                                       [ Start Interview]
+
+PAGE 3 : INTERVIEW PAGE
+
+QUESTION
+Q1..........
+ANS>.....
+
+          [SUBMIT]
+
+Show progress: Progress:
+■■■■□□□□□□ 40%
+
+Page 4 — Evaluation
+
+Overall Score: 7.8/10
+
+Technical Accuracy: 8/10
+Communication: 7/10
+Confidence: 7/10
+Problem Solving: 9/10                                        
+
+Strengths                                                 MENTOR'S NOTE 
+                                                        
+✓ Strong DSA knowledge
+✓ Good explanations
+
+Weak Areas
+✗ Need better examples
+✗ Improve communication
+
+Page 5 — Dashboard                                                   [GRAPH WEEK WISE ]
+
+Interviews Completed: 15
+
+Average Score: 7.6
+
+Best Topic:
+Arrays
+
+Weak Topic:
+DBMS
