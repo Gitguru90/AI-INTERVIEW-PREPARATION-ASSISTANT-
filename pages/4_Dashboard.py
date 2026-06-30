@@ -56,6 +56,3 @@ st.line_chart(graph_df.set_index("Interview"))
 st.divider()
 st.subheader("📋 Interview History")
 st.dataframe(df[["Role", "Score"]], use_container_width=True)
-
-st.divider()
-st.success("Dashboard loaded successfully.")
