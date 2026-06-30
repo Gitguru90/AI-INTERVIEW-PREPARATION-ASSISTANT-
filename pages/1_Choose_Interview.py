@@ -1,9 +1,6 @@
 import streamlit as st
-from utils.header import render_header
 
 st.set_page_config(page_title="Choose Interview", page_icon="🎯")
-
-render_header()
 
 st.markdown("""
 <style>
