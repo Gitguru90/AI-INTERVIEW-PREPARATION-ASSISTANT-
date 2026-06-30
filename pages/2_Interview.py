@@ -1,7 +1,10 @@
 import streamlit as st
 from utils.groq_ai import ask_interview_question_prompt, GroqCallError
+from utils.header import render_header
 
 st.set_page_config(page_title="Interview Round", page_icon="🎤")
+
+render_header()
 
 st.markdown("""
 <style>
