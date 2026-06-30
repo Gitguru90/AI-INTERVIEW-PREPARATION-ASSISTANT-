@@ -6,57 +6,45 @@ LOGO_PATH = Path(__file__).parent.parent / "assets" / "logo.png"
 
 
 @st.cache_data
-def _get_logo_base64() -> str:
+def _get_logo_base64() -> str | None:
+    if not LOGO_PATH.exists():
+        return None
     with open(LOGO_PATH, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
 
 def render_header(name: str = "Kiran Tomar"):
-    """Renders a fixed logo + name badge in the top-right corner of the page."""
-    try:
-        logo_b64 = _get_logo_base64()
-    except FileNotFoundError:
-        logo_b64 = None
+    """Renders a logo + name badge, right-aligned at the top of the page content.
 
-    logo_html = (
-        f'<img src="data:image/png;base64,{logo_b64}" class="header-logo" />'
-        if logo_b64 else ""
-    )
+    Uses normal document flow (st.columns) instead of CSS position:fixed, since
+    fixed overlays get covered by Streamlit's own toolbar (hamburger menu /
+    Deploy button) which sits at a higher stacking layer in that same corner.
+    """
+    logo_b64 = _get_logo_base64()
 
-    st.markdown(
-        f"""
-        <style>
-        .top-right-badge {{
-            position: fixed;
-            top: 12px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 999px;
-            padding: 6px 14px 6px 6px;
-        }}
-        .header-logo {{
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }}
-        .header-name {{
-            color: rgba(255, 255, 255, 0.85);
-            font-weight: 600;
-            font-size: 14px;
-            white-space: nowrap;
-        }}
-        </style>
-        <div class="top-right-badge">
-            {logo_html}
-            <span class="header-name">{name}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    spacer, badge_col = st.columns([5, 1])
+    with badge_col:
+        if logo_b64:
+            st.markdown(
+                f"""
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+                    <img src="data:image/png;base64,{logo_b64}"
+                         style="width:32px; height:32px; border-radius:50%; object-fit:cover;" />
+                    <span style="color:rgba(255,255,255,0.85); font-weight:600; font-size:14px; white-space:nowrap;">
+                        {name}
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            # Visible fallback so a missing/misnamed file is obvious instead of
+            # silently rendering nothing.
+            st.markdown(
+                f"""
+                <div style="text-align:right; color:rgba(255,165,0,0.9); font-size:12px;">
+                    ⚠️ Logo not found at assets/logo.png<br/>{name}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
