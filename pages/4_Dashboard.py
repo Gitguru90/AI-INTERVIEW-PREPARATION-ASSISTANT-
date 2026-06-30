@@ -15,7 +15,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📈 Performance Dashboard")
-st.markdown("⚡ Powered by **Groq + Llama 3**")
+st.markdown("⚡ Powered by **Groq**")
 
 rows = get_all_interviews()
 
@@ -24,13 +24,13 @@ if len(rows) == 0:
     st.stop()
 
 df = pd.DataFrame(rows, columns=["ID", "Role", "Score", "Evaluation"])
+df["Score"] = pd.to_numeric(df["Score"], errors="coerce").fillna(0)
 
 interviews_completed = len(df)
 average_score = round(df["Score"].mean(), 2)
 best_score = round(df["Score"].max(), 2)
 
 st.divider()
-
 col1, col2, col3 = st.columns(3)
 with col1:
     st.metric("Interviews Completed", interviews_completed)
@@ -46,7 +46,6 @@ st.subheader("🎯 AI Learning Roadmap")
 st.write(roadmap)
 
 st.divider()
-
 st.subheader("📊 Performance Trend")
 graph_df = pd.DataFrame({
     "Interview": range(1, len(df) + 1),
@@ -55,7 +54,6 @@ graph_df = pd.DataFrame({
 st.line_chart(graph_df.set_index("Interview"))
 
 st.divider()
-
 st.subheader("📋 Interview History")
 st.dataframe(df[["Role", "Score"]], use_container_width=True)
 
