@@ -1,14 +1,11 @@
 import streamlit as st
 import re
 from utils.groq_ai import evaluate_interview, generate_roadmap, GroqCallError
-from utils.header import render_header
 from db import create_table, save_interview
 
 create_table()
 
 st.set_page_config(page_title="Evaluation", page_icon="📊")
-
-render_header()
 
 st.markdown("""
 <style>
