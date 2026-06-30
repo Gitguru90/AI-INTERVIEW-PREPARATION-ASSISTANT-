@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.groq_ai import analyze_resume
+from utils.groq_ai import analyze_resume, GroqCallError
 from utils.resume_parser import extract_text
 
 st.set_page_config(
@@ -95,7 +95,7 @@ with st.sidebar:
     st.write("Practice • Analyze • Improve")
     st.markdown("---")
     st.markdown("⚡ **Powered by Groq**")
-    st.markdown("🦙 Model: Llama 3 8B")
+    st.markdown("🦙 Model: Llama 3.1 8B")
     st.markdown("🚀 Response time: ~1 sec")
 
 st.markdown("Practice interviews, improve your skills, and track your progress.")
@@ -130,14 +130,28 @@ resume = st.file_uploader("Upload your Resume (PDF/DOCX)", type=["pdf", "docx"])
 
 if resume is not None:
     st.success("Resume Uploaded Successfully!")
-    with st.spinner("⚡ Analyzing with Groq AI... (usually under 3 seconds)"):
-        resume_text = extract_text(resume)
-        if resume_text:
-            analysis = analyze_resume(resume_text)
-            st.subheader("📊 AI Resume Analysis")
-            st.markdown(analysis)
-        else:
-            st.error("Could not extract text from the resume. Please try a different file.")
+
+    # Cache by file identity so re-running the script (e.g. widget interaction
+    # elsewhere on the page) doesn't re-call the API on every rerun.
+    file_signature = (resume.name, resume.size)
+    if st.session_state.get("resume_signature") != file_signature:
+        st.session_state.pop("resume_analysis", None)
+        st.session_state["resume_signature"] = file_signature
+
+    if "resume_analysis" not in st.session_state:
+        with st.spinner("⚡ Analyzing with Groq AI..."):
+            resume_text = extract_text(resume)
+            if not resume_text or not resume_text.strip():
+                st.error("Could not extract text from the resume. Please try a different file.")
+            else:
+                try:
+                    st.session_state["resume_analysis"] = analyze_resume(resume_text)
+                except GroqCallError as e:
+                    st.error(f"Resume analysis failed: {e}")
+
+    if "resume_analysis" in st.session_state:
+        st.subheader("📊 AI Resume Analysis")
+        st.markdown(st.session_state["resume_analysis"])
 
 st.divider()
 st.info("Use the sidebar to start your interview.")
