@@ -1,11 +1,8 @@
 import streamlit as st
 import pandas as pd
 from db import get_all_interviews
-from utils.header import render_header
 
 st.set_page_config(page_title="Dashboard", page_icon="📈")
-
-render_header()
 
 st.markdown("""
 <style>
