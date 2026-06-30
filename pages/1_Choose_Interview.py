@@ -22,7 +22,6 @@ role = st.selectbox("Select Role", [
     "Machine Learning Engineer", "Data Analyst", "Data Scientist",
     "Cybersecurity Analyst"
 ])
-
 mode = st.radio("Interview Mode", ["MCQ", "Descriptive", "Coding", "Mixed"])
 difficulty = st.radio("Difficulty", ["Easy", "Medium", "Hard"])
 duration = st.selectbox("Duration", ["15 min", "30 min", "60 min"])
@@ -35,12 +34,14 @@ if st.button("🚀 Start Interview"):
     st.session_state.difficulty = difficulty
     st.session_state.duration = duration
 
+    # Clear out any leftover state from a previous interview attempt so the
+    # next page doesn't show stale questions/answers/scores.
     for key in [
         "generated_questions", "answers", "correct_answers",
         "interview_questions", "interview_answers", "evaluation_report",
-        "roadmap", "mcq_score", "questions_generated_for"
+        "roadmap", "mcq_score", "questions_generated_for",
+        "question_generation_error",
     ]:
-        if key in st.session_state:
-            del st.session_state[key]
+        st.session_state.pop(key, None)
 
     st.switch_page("pages/2_Interview.py")
