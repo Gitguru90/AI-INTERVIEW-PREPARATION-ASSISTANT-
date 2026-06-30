@@ -1,6 +1,5 @@
-cat > /home/claude/groq_app/pages/2_Interview.py << 'EOF'
 import streamlit as st
-from utils.groq_ai import ask_interview_question_prompt
+from utils.groq_ai import ask_interview_question_prompt, GroqCallError
 
 st.set_page_config(page_title="Interview Round", page_icon="🎤")
 
@@ -14,7 +13,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🎤 AI Interview")
-st.markdown("⚡ Powered by **Groq + Mixtral**")
+st.markdown("⚡ Powered by **Groq**")
 
 if "role" not in st.session_state:
     st.warning("Please start interview from Choose Interview page.")
@@ -32,11 +31,13 @@ duration = st.session_state["duration"]
 
 DURATION_QUESTION_MAP = {15: 5, 30: 10, 60: 15}  # reduced counts for token limits
 
+
 def _parse_duration_minutes(value):
     if isinstance(value, (int, float)):
         return int(value)
     digits = "".join(ch for ch in str(value) if ch.isdigit())
     return int(digits) if digits else 15
+
 
 duration_minutes = _parse_duration_minutes(duration)
 num_questions = DURATION_QUESTION_MAP.get(duration_minutes, 5)
@@ -82,14 +83,26 @@ Coding: CODING: ..."""
         mode_instructions = f"Generate {num_questions} questions."
 
     with st.spinner("⚡ Generating questions with Groq..."):
-        st.session_state.generated_questions = ask_interview_question_prompt(
-            role, difficulty, mode, num_questions, mode_instructions
-        )
-        st.session_state.questions_generated_for = current_signature
-        st.session_state.answers = {}
-        st.session_state.correct_answers = {}
+        try:
+            st.session_state.generated_questions = ask_interview_question_prompt(
+                role, difficulty, mode, num_questions, mode_instructions
+            )
+            st.session_state.questions_generated_for = current_signature
+            st.session_state.answers = {}
+            st.session_state.correct_answers = {}
+            st.session_state.pop("question_generation_error", None)
+        except GroqCallError as e:
+            st.session_state["question_generation_error"] = str(e)
 
-questions_text = st.session_state.generated_questions
+if st.session_state.get("question_generation_error"):
+    st.error(f"Couldn't generate questions: {st.session_state['question_generation_error']}")
+    if st.button("🔄 Retry"):
+        st.session_state.pop("question_generation_error", None)
+        st.session_state.pop("questions_generated_for", None)
+        st.rerun()
+    st.stop()
+
+questions_text = st.session_state.get("generated_questions", "")
 
 if "answers" not in st.session_state:
     st.session_state.answers = {}
@@ -99,6 +112,8 @@ if "correct_answers" not in st.session_state:
 st.write(f"### {role} | {mode} | {difficulty}")
 st.write(f"### Duration: {duration_minutes} min | Questions: {num_questions}")
 st.divider()
+
+any_rendered = False
 
 if mode == "MCQ":
     blocks = questions_text.split("QUESTION:")
@@ -120,6 +135,7 @@ if mode == "MCQ":
             selected = st.radio(question, options, key=f"mcq_{q_no}")
             st.session_state.answers[q_no] = selected
             st.session_state.correct_answers[q_no] = answer_key
+            any_rendered = True
         else:
             st.write(question)
         st.divider()
@@ -137,6 +153,7 @@ elif mode == "Descriptive":
         answer = st.text_area("Your Answer", key=f"desc_{i}")
         st.session_state.answers[i] = answer
         st.divider()
+        any_rendered = True
 
 elif mode == "Coding":
     questions = [
@@ -144,16 +161,13 @@ elif mode == "Coding":
         for line in questions_text.split("\n")
         if line.strip().startswith("CODING:")
     ]
-    if not questions:
-        st.error("No coding questions generated. Raw output:")
-        st.code(questions_text)
-    else:
-        for i, q in enumerate(questions, start=1):
-            st.subheader(f"Coding Problem {i}")
-            st.write(q)
-            code = st.text_area("Write Your Code", height=200, key=f"code_{i}")
-            st.session_state.answers[i] = code
-            st.divider()
+    for i, q in enumerate(questions, start=1):
+        st.subheader(f"Coding Problem {i}")
+        st.write(q)
+        code = st.text_area("Write Your Code", height=200, key=f"code_{i}")
+        st.session_state.answers[i] = code
+        st.divider()
+        any_rendered = True
 
 elif mode == "Mixed":
     lines = [line.strip() for line in questions_text.split("\n") if line.strip()]
@@ -186,6 +200,7 @@ elif mode == "Mixed":
                 answer = st.text_area(question, key=f"mixed_desc_{q_no}")
                 st.session_state.answers[q_no] = answer
             st.divider()
+            any_rendered = True
             q_no += 1
             i = j
         elif line.startswith("CODING:"):
@@ -194,10 +209,21 @@ elif mode == "Mixed":
             code = st.text_area(problem, height=200, key=f"mixed_code_{q_no}")
             st.session_state.answers[q_no] = code
             st.divider()
+            any_rendered = True
             q_no += 1
             i += 1
         else:
             i += 1
+
+# If parsing failed to find any well-formed question (e.g. the model didn't
+# follow the format), show the raw output instead of a blank page.
+if not any_rendered:
+    st.error("Couldn't parse the generated questions into the expected format. Raw output below:")
+    st.code(questions_text or "(empty)")
+    if st.button("🔄 Regenerate Questions"):
+        st.session_state.pop("questions_generated_for", None)
+        st.rerun()
+    st.stop()
 
 if st.button("✅ Submit Interview"):
     if mode in ["MCQ", "Mixed"]:
@@ -213,4 +239,3 @@ if st.button("✅ Submit Interview"):
     st.session_state.interview_questions = questions_text
     st.session_state.interview_answers = dict(st.session_state.answers)
     st.switch_page("pages/3_Evaluation.py")
-EOF
