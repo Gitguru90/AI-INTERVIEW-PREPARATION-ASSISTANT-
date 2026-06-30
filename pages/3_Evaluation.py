@@ -53,9 +53,11 @@ else:
     st.caption("⚠️ Couldn't extract a numeric score from the report — defaulting to 0/10 for dashboard tracking.")
 
 if score >= 7:
-    st.balloons()
+    st.success(f"Strong performance — {score}/10")
 elif score >= 4:
-    st.snow()
+    st.info(f"Decent attempt — {score}/10. Room to improve.")
+else:
+    st.warning(f"Needs work — {score}/10")
 
 save_interview(role, score, evaluation)
 
