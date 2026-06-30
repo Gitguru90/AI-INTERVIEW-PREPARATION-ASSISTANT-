@@ -1,15 +1,12 @@
 import streamlit as st
 from utils.groq_ai import analyze_resume, GroqCallError
 from utils.resume_parser import extract_text
-from utils.header import render_header
 
 st.set_page_config(
     page_title="AI Interview Preparation Assistant",
     page_icon="🤖",
     layout="wide"
 )
-
-render_header()
 
 st.markdown("""
 <style>
