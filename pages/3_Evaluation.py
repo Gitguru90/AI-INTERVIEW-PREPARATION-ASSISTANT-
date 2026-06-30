@@ -1,7 +1,6 @@
-cat > /home/claude/groq_app/pages/3_Evaluation.py << 'EOF'
 import streamlit as st
 import re
-from utils.groq_ai import evaluate_interview, generate_roadmap
+from utils.groq_ai import evaluate_interview, generate_roadmap, GroqCallError
 from db import create_table, save_interview
 
 create_table()
@@ -18,28 +17,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📊 Interview Evaluation")
-st.markdown("⚡ Powered by **Groq + Mixtral**")
+st.markdown("⚡ Powered by **Groq**")
 
-questions = st.session_state.get("generated_questions", "")
-answers = st.session_state.get("answers", {})
+questions = st.session_state.get("interview_questions", st.session_state.get("generated_questions", ""))
+answers = st.session_state.get("interview_answers", st.session_state.get("answers", {}))
 role = st.session_state.get("role", "SDE Intern")
+
+if not questions:
+    st.warning("No interview data found. Please complete an interview first.")
+    st.stop()
 
 if "evaluation_report" not in st.session_state:
     with st.spinner("⚡ Evaluating with Groq AI..."):
-        evaluation = evaluate_interview(role, questions, answers)
-        roadmap = generate_roadmap(evaluation)
-        st.session_state.evaluation_report = evaluation
-        st.session_state.roadmap = roadmap
+        try:
+            evaluation = evaluate_interview(role, questions, answers)
+            roadmap = generate_roadmap(evaluation)
+            st.session_state.evaluation_report = evaluation
+            st.session_state.roadmap = roadmap
+        except GroqCallError as e:
+            st.error(f"Evaluation failed: {e}")
+            if st.button("🔄 Retry"):
+                st.rerun()
+            st.stop()
 
 evaluation = st.session_state.evaluation_report
 
 st.subheader("📋 Evaluation Report")
 st.markdown(evaluation)
 
-score = 0
-match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', evaluation)
+score = 0.0
+match = re.search(r'(\d+(?:\.\d+)?)\s*/\s*10', evaluation)
 if match:
     score = float(match.group(1))
+else:
+    st.caption("⚠️ Couldn't extract a numeric score from the report — defaulting to 0/10 for dashboard tracking.")
 
 if score >= 7:
     st.balloons()
@@ -50,4 +61,3 @@ save_interview(role, score, evaluation)
 
 if st.button("📈 View Dashboard"):
     st.switch_page("pages/4_Dashboard.py")
-EOF
