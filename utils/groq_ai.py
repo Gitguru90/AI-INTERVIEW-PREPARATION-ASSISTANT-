@@ -4,7 +4,7 @@ from groq import Groq
 # Groq deprecated mixtral-8x7b-32768. Use a currently supported model.
 # Swap to "llama-3.3-70b-versatile" if you want stronger output and don't mind
 # slightly slower responses.
-MODEL = "llama-3.1-8b-instant"
+model="openai/gpt-oss-20b"
 
 
 def get_client():
