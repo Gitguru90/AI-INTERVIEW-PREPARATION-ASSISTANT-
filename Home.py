@@ -95,7 +95,7 @@ with st.sidebar:
     st.write("Practice • Analyze • Improve")
     st.markdown("---")
     st.markdown("⚡ **Powered by Groq**")
-    st.markdown(model="openai/gpt-oss-20b")
+   st.markdown("⚡ Powered by Groq + GPT-OSS — Ultra Fast AI")
     st.markdown("🚀 Response time: ~1 sec")
 
 st.markdown("Practice interviews, improve your skills, and track your progress.")
